@@ -46,6 +46,10 @@ class HardRuntime(object):
     def execute(self, code, timeout=0):
         return self.call(("exec", code), timeout)
 
+    # Get all the globals in the interpreter
+    def globals(self, timeout=0):
+        return self.call(("globals", ""), timeout=0)
+
 # Receive a request in the remote process
 def recv(conn, lua):
     action, details = conn.recv()
@@ -55,5 +59,7 @@ def recv(conn, lua):
         conn.send(lua.eval(details))
     elif action=="exec":
         conn.send(lua.execute(details))
+    elif action=="globals":
+        conn.send(list(lua.globals().keys()))
     else:
         raise ValueError("Unknown action type %r" % action)
