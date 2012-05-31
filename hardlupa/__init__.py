@@ -8,9 +8,20 @@ safe_lua_modules = [
     "tonumber",
     "print",
     "module",
+    "bit",
+    "package",
+    "error",
+    "debug",
+    "rawequal",
+    "unpack",
+    "pairs",
     "table",
-    "string",
+    "next",
     "math",
+    "_G",
+    "_VERSION",
+    "string",
+    "type",
     "collectgarbage",
 ]
 
@@ -96,5 +107,5 @@ def globalflush(lua, names=safe_lua_modules, values={}):
         if x in values:
             lua_globals[x] = values[x]
         else:
-            print "Deleting ", repr(x)
+            #print "Deleting ", repr(x)
             lua_globals[x] = None
