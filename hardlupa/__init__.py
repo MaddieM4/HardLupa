@@ -7,26 +7,53 @@ class HardRuntime(object):
         self.process = multiprocessing.Process(
             target=self.run,
             args=(
-                self.parent_conn,
 				self.child_conn,
 			),
 		)
+        self.process.daemon = True
         self.process.start()
 
-    def run(self, parent, child):
+    def run(self, conn):
         lua = lupa.LuaRuntime()
         while True:
-            if not recv(parent, child, lua):
-                break
+            try:
+                recv(conn, lua)
+            except Exception as e:
+                conn.send(e)
+        print "HardRuntime sandbox is exiting..."
 
     def send(self, call):
-        self.parent_conn.send(call)
+        if self.process.is_alive():
+            self.parent_conn.send(call)
+        else:
+            raise IOError("Process is dead.")
 
-    def call(self, call):
+    def recv(self, timeout=0):
+        if self.process.is_alive():
+            return self.parent_conn.recv()
+        else:
+            raise IOError("Process is dead.")
+
+    def call(self, call, timeout=0):
         self.send(call)
-        return self.child_conn.recv()
+        return self.recv()
 
-def recv(parent, child, lua):
-    call = parent.recv()
-    child.send(call)
-    return False
+    # Evaluate an expression
+    def eval(self, code, timeout=0):
+        return self.call(("eval", code), timeout)
+
+    # Execute some code
+    def execute(self, code, timeout=0):
+        return self.call(("exec", code), timeout)
+
+# Receive a request in the remote process
+def recv(conn, lua):
+    action, details = conn.recv()
+    if not isinstance(details, basestring):
+        raise TypeError("Action details should be a string. Got %r" % details)
+    if action=="eval":
+        conn.send(lua.eval(details))
+    elif action=="exec":
+        conn.send(lua.execute(details))
+    else:
+        raise ValueError("Unknown action type %r" % action)
