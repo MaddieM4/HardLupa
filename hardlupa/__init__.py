@@ -2,6 +2,12 @@ import lupa
 import multiprocessing
 
 safe_lua_modules = [
+    "coroutine",
+    "assert",
+    "tostring",
+    "tonumber",
+    "print",
+    "module",
     "table",
     "string",
     "math",
@@ -58,6 +64,10 @@ class HardRuntime(object):
     def execute(self, code, timeout=0):
         return self.call(("exec", code), timeout)
 
+    # Get all the globals in the interpreter
+    def globals(self, timeout=0):
+        return self.call(("globals", ""), timeout=0)
+
 # Receive a request in the remote process
 def recv(conn, lua, globs):
     action, details = conn.recv()
@@ -67,6 +77,8 @@ def recv(conn, lua, globs):
         conn.send(lua.eval(details))
     elif action=="exec":
         conn.send(lua.execute(details))
+    elif action=="globals":
+        conn.send(list(lua.globals().keys()))
     elif action=="globals_update":
         globalflush(lua, details[1], details[2])
         return ("globals_update", lua.globals())
@@ -76,12 +88,13 @@ def recv(conn, lua, globs):
 # Save and/or restore the state of the globals in the Lupa interpreter
 def globalflush(lua, names=safe_lua_modules, values={}):
     lua_globals = lua.globals()
-    if not values:
-        for x in lua_globals:
+    if not len(values):
+        for x in names:
             values[x] = lua_globals[x]
 
     for x in lua_globals:
         if x in values:
             lua_globals[x] = values[x]
         else:
+            print "Deleting ", repr(x)
             lua_globals[x] = None
