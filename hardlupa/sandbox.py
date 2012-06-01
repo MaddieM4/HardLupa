@@ -69,8 +69,11 @@ class Sandbox(object):
         self.closed = True
         self.send(conn, "HardLupa sandbox is terminating...")
 
-    def create_runtime(self, **kwargs):
-        return self.call("create_runtime", (), kwargs)
+    def create_runtime(self, name=None):
+        return SBRuntime(
+            self,
+            self.call("create_runtime", (), {'name':name}),
+        )
 
     def execute(self, name, code):
         return self.call("execute", (name, code), {})
@@ -84,3 +87,18 @@ class Sandbox(object):
     def close(self):
         return self.call("close", (), {})
 
+
+class SBRuntime(object):
+    def __init__(self, sandbox, name):
+        self.sandbox = sandbox
+        self.name    = name
+
+    def execute(self, code):
+        return self.sandbox.execute(self.name, code)
+
+    def eval(self, code):
+        return self.sandbox.eval(self.name, code)
+
+    @property
+    def globals(self):
+        return self.sandbox.globals(self.name)

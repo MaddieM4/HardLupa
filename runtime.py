@@ -49,6 +49,7 @@ class HardRuntime(object):
 # Shrink and/or restore the state of the globals in the Lupa interpreter
 def globalflush(lua, names=safe_lua_modules, values={}):
     lua_globals = lua.globals()
+    values = dict(values) # Ensures we get a copy, not the same dict
     if not len(values):
         for x in names:
             values[x] = lua_globals[x]
