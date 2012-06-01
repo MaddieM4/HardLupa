@@ -19,11 +19,14 @@ class Sandbox(object):
         self.closed = False
         while not self.closed:
             call, args, kwargs = self.recv(conn)
-            getattr(self, "_"+call)(conn, *args, **kwargs)
+            try:
+                getattr(self, "_"+call)(conn, *args, **kwargs)
+            except Exception as e:
+                self.send(conn, e)
 
-    def send(self, value):
+    def send(self, conn, value):
         if self.process.is_alive():
-            self.parent_conn.send(value)
+            conn.send(value)
         else:
             raise IOError("Process is dead.")
 
@@ -34,25 +37,42 @@ class Sandbox(object):
             raise IOError("Process is dead.")
 
     def call(self, name, args, kwargs, timeout=0):
-        self.send((name, args, kwargs))
-        return self.parent_conn.recv()
+        self.send(self.parent_conn, (name, args, kwargs))
+        return self.recv(self.parent_conn)
 
     def _create_runtime(self, conn, name=None):
         # Create and return a handle to a runtime
         if (name==None):
             name = "auto_"+str(len(self.runtimes))
         self.runtimes[name] = HardRuntime()
-        conn.send(name) 
+        self.send(conn, name) 
+
+    def _execute(self, conn, name, code):
+        # Execute lua code in a runtime
+        self.send(conn,
+            self.runtimes[name].execute(code)
+        )
+
+    def _eval(self, conn, name, code):
+        # Execute lua code in a runtime
+        self.send(conn,
+            self.runtimes[name].eval(code)
+        )
 
     def _close(self, conn):
         # Terminate the sandbox process
         self.closed = True
-        conn.send("HardLupa sandbox is terminating...")
+        self.send(conn, "HardLupa sandbox is terminating...")
 
     def create_runtime(self, **kwargs):
         return self.call("create_runtime", (), kwargs)
 
+    def execute(self, name, code):
+        return self.call("execute", (name, code), {})
+
+    def eval(self, name, code):
+        return self.call("eval", (name, code), {})
+
     def close(self):
         return self.call("close", (), {})
-
 
