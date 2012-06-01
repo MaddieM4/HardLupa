@@ -59,6 +59,11 @@ class Sandbox(object):
             self.runtimes[name].eval(code)
         )
 
+    def _globals(self, conn, name):
+        self.send(conn,
+            self.runtimes[name].globals
+        )
+
     def _close(self, conn):
         # Terminate the sandbox process
         self.closed = True
@@ -72,6 +77,9 @@ class Sandbox(object):
 
     def eval(self, name, code):
         return self.call("eval", (name, code), {})
+
+    def globals(self, name):
+        return self.call("globals", (name,), {})
 
     def close(self):
         return self.call("close", (), {})
