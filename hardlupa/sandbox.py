@@ -14,42 +14,45 @@ class Sandbox(object):
         self.process.daemon = True
         self.process.start()
 
-    def run(self):
+    def run(self, conn):
         self.runtimes = {}
         self.closed = False
         while not self.closed:
-            call, args, kwargs = self.recv()
-            getattr(self, "_"+call)(*args, **kwargs)
+            call, args, kwargs = self.recv(conn)
+            getattr(self, "_"+call)(conn, *args, **kwargs)
 
-    def send(self, call):
+    def send(self, value):
         if self.process.is_alive():
-            self.parent_conn.send(call)
+            self.parent_conn.send(value)
         else:
             raise IOError("Process is dead.")
 
-    def recv(self, timeout=0):
+    def recv(self, conn, timeout=0):
         if self.process.is_alive():
-            return self.parent_conn.recv()
+            return conn.recv()
         else:
             raise IOError("Process is dead.")
 
     def call(self, name, args, kwargs, timeout=0):
-        self.send((call, args, kwargs))
-        return self.recv()
+        self.send((name, args, kwargs))
+        return self.parent_conn.recv()
 
-    def _create_runtime(self, name=None):
+    def _create_runtime(self, conn, name=None):
         # Create and return a handle to a runtime
         if (name==None):
             name = "auto_"+str(len(self.runtimes))
         self.runtimes[name] = HardRuntime()
+        conn.send(name) 
 
-    def _close(self):
+    def _close(self, conn):
+        # Terminate the sandbox process
         self.closed = True
+        conn.send("HardLupa sandbox is terminating...")
 
     def create_runtime(self, **kwargs):
-        self.call("create_runtime", (), kwargs)
+        return self.call("create_runtime", (), kwargs)
 
     def close(self):
-        self.call("close", (), {})
+        return self.call("close", (), {})
 
 
