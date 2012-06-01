@@ -38,8 +38,10 @@ class HardRuntime(object):
         return self.lua.execute(code)
 
     # Get all the global names in the interpreter
+    @property
     def globals(self):
-        return list(self.lua.globals().keys())
+        globs = self.lua.globals()
+        return list(x for x in globs.keys() if globs[x] != None)
 
     def globalflush(self, **kwargs):
         return globalflush(self.lua, **kwargs)
