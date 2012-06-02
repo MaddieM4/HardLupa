@@ -99,6 +99,9 @@ class SBRuntime(object):
     def eval(self, code):
         return self.sandbox.eval(self.name, code)
 
+    def __getitem__(self, i):
+        return self.eval(i)
+
     @property
     def globals(self):
         return self.sandbox.globals(self.name)

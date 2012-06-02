@@ -37,6 +37,9 @@ class HardRuntime(object):
     def execute(self, code):
         return self.lua.execute(code)
 
+    def __getitem__(self, i):
+        return self.eval(i)
+
     # Get all the global names in the interpreter
     @property
     def globals(self):
